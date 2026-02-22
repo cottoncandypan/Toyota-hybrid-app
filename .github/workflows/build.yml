@@ -12,17 +12,17 @@ jobs:
 
     steps:
 
-    # ── 1. Checkout repository ─────────────────────────────
+    # 1️⃣ Checkout
     - name: Checkout
       uses: actions/checkout@v4
 
-    # ── 2. Setup Python ────────────────────────────────────
+    # 2️⃣ Python
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    # ── 3. Install system dependencies ─────────────────────
+    # 3️⃣ System dependencies
     - name: Install system packages
       run: |
         sudo apt-get update -qq
@@ -33,13 +33,13 @@ jobs:
           cmake libffi-dev libssl-dev \
           build-essential ccache
 
-    # ── 4. Install Buildozer + Cython ──────────────────────
+    # 4️⃣ Buildozer
     - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
         pip install buildozer cython==0.29.37
 
-    # ── 5. Cache Buildozer (SDK/NDK/python-for-android) ───
+    # 5️⃣ Cache
     - name: Cache Buildozer global directory
       uses: actions/cache@v4
       with:
@@ -48,21 +48,20 @@ jobs:
         restore-keys: |
           buildozer-${{ runner.os }}-
 
-    # ── 6. Debug: show files ───────────────────────────────
-    - name: Verify project structure
+    # 6️⃣ Accept Android SDK licenses automatically
+    - name: Accept Android SDK Licenses
       run: |
-        echo "Current directory:"
-        pwd
-        echo "Files in root:"
-        ls -la
+        mkdir -p ~/.android
+        touch ~/.android/repositories.cfg
+        yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-    # ── 7. Build APK ───────────────────────────────────────
+    # 7️⃣ Build
     - name: Build debug APK
       run: |
         set -eo pipefail
         buildozer -v android debug 2>&1 | tee build.log
 
-    # ── 8. Upload APK ──────────────────────────────────────
+    # 8️⃣ Upload APK
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
@@ -70,7 +69,7 @@ jobs:
         path: '**/*.apk'
         if-no-files-found: error
 
-    # ── 9. Always upload build log if something fails ─────
+    # 9️⃣ Upload log if failure
     - name: Upload build log on failure
       if: failure()
       uses: actions/upload-artifact@v4
