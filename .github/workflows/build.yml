@@ -3,66 +3,71 @@ name: Build ToyotaScan APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:          # lets you trigger a build manually from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build Android APK
     runs-on: ubuntu-22.04
 
     steps:
+      # Checkout repository
+      - uses: actions/checkout@v4
 
-    # ── 1. Check out your code ──────────────────────────────────────────────
-    - name: Checkout
-      uses: actions/checkout@v4
+      # Setup Python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-    # ── 2. Python + dependencies ────────────────────────────────────────────
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+      # Install system dependencies
+      - name: Install system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            cmake libffi-dev libssl-dev \
+            build-essential ccache
 
-    - name: Install system packages
-      run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y \
-          git zip unzip openjdk-17-jdk \
-          autoconf libtool pkg-config \
-          zlib1g-dev libncurses5-dev libncursesw5-dev \
-          cmake libffi-dev libssl-dev \
-          build-essential ccache
+      # Install Buildozer
+      - name: Install Buildozer and Cython
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython==0.29.37
 
-    - name: Install Buildozer and Cython
-      run: |
-        pip install --upgrade pip
-        pip install buildozer cython==0.29.37
+      # Cache Buildozer (fresh versioned cache)
+      - name: Cache Buildozer
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: buildozer-${{ runner.os }}-v3-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-v3-
 
-    # ── 3. Cache the heavy stuff (NDK / SDK / p4a) ──────────────────────────
-    - name: Cache Buildozer global directory
-      uses: actions/cache@v4
-      with:
-        path: ~/.buildozer
-        key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-        restore-keys: |
-          buildozer-${{ runner.os }}-
+      # Force clean Android environment (prevents broken SDK reuse)
+      - name: Clean old SDK
+        run: |
+          rm -rf ~/.buildozer
 
-    # ── 4. Build! ────────────────────────────────────────────────────────────
-    - name: Build debug APK
-      run: |
-        buildozer -v android debug 2>&1 | tee build.log
+      # Build APK
+      - name: Build debug APK
+        run: |
+          set -eo pipefail
+          buildozer android clean
+          buildozer -v android debug 2>&1 | tee build.log
 
-    # ── 5. Upload APK as downloadable artifact ───────────────────────────────
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: ToyotaScan-debug
-        path: bin/*.apk
-        if-no-files-found: error
+      # Upload APK (search everywhere safely)
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ToyotaScan-debug
+          path: '**/*.apk'
+          if-no-files-found: error
 
-    # ── 6. Keep the log even if the build fails ───────────────────────────────
-    - name: Upload build log on failure
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-log
-        path: build.log
+      # Upload build log if failure
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
