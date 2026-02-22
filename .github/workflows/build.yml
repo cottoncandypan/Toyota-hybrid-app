@@ -3,7 +3,7 @@ name: Build ToyotaScan APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:          # lets you trigger a build manually from GitHub UI
 
 jobs:
   build:
@@ -12,17 +12,16 @@ jobs:
 
     steps:
 
-    # 1️⃣ Checkout
+    # ── 1. Check out your code ──────────────────────────────────────────────
     - name: Checkout
       uses: actions/checkout@v4
 
-    # 2️⃣ Python
+    # ── 2. Python + dependencies ────────────────────────────────────────────
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    # 3️⃣ System dependencies
     - name: Install system packages
       run: |
         sudo apt-get update -qq
@@ -33,13 +32,12 @@ jobs:
           cmake libffi-dev libssl-dev \
           build-essential ccache
 
-    # 4️⃣ Buildozer
     - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
         pip install buildozer cython==0.29.37
 
-    # 5️⃣ Cache
+    # ── 3. Cache the heavy stuff (NDK / SDK / p4a) ──────────────────────────
     - name: Cache Buildozer global directory
       uses: actions/cache@v4
       with:
@@ -48,28 +46,20 @@ jobs:
         restore-keys: |
           buildozer-${{ runner.os }}-
 
-    # 6️⃣ Accept Android SDK licenses automatically
-    - name: Accept Android SDK Licenses
-      run: |
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-    # 7️⃣ Build
+    # ── 4. Build! ────────────────────────────────────────────────────────────
     - name: Build debug APK
       run: |
-        set -eo pipefail
         buildozer -v android debug 2>&1 | tee build.log
 
-    # 8️⃣ Upload APK
+    # ── 5. Upload APK as downloadable artifact ───────────────────────────────
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: ToyotaScan-debug
-        path: '**/*.apk'
+        path: bin/*.apk
         if-no-files-found: error
 
-    # 9️⃣ Upload log if failure
+    # ── 6. Keep the log even if the build fails ───────────────────────────────
     - name: Upload build log on failure
       if: failure()
       uses: actions/upload-artifact@v4
