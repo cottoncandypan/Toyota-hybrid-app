@@ -9,22 +9,28 @@ jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-22.04
+    container:
+      image: kivy/buildozer:latest
 
     steps:
 
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Build with Buildozer Action
-      uses: ArtemSBulgakov/buildozer-action@v1
-      id: buildozer
-      with:
-        command: android debug
-        buildozer_version: stable
+    - name: Build debug APK
+      run: |
+        buildozer -v android debug 2>&1 | tee build.log
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: ToyotaScan-debug
-        path: ${{ steps.buildozer.outputs.filename }}
+        path: bin/*.apk
         if-no-files-found: error
+
+    - name: Upload build log on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
