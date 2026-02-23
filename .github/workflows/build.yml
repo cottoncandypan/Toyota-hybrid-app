@@ -20,20 +20,34 @@ jobs:
     - name: Build debug APK
       run: |
         yes | buildozer -v android debug 2>&1 | tee build.log
-        echo "--- Searching for APK ---"
-        find / -name "*.apk" 2>/dev/null || echo "No APK found anywhere"
-        echo "--- bin/ contents ---"
-        ls -la bin/ 2>/dev/null || echo "bin/ does not exist"
+
+    - name: Find and collect APK
+      if: always()
+      run: |
+        echo "=== Searching for APK files ==="
+        find / -name "*.apk" 2>/dev/null
+        echo "=== bin/ directory ==="
+        ls -la bin/ 2>/dev/null || echo "no bin/"
+        echo "=== .buildozer/android/platform/build* ==="
+        find /root/.buildozer -name "*.apk" 2>/dev/null || echo "none in .buildozer"
+        echo "=== Copying any APK to /github/workspace/output.apk ==="
+        APK=$(find / -name "*.apk" 2>/dev/null | head -1)
+        if [ -n "$APK" ]; then
+          cp "$APK" output.apk
+          echo "Copied $APK to output.apk"
+        else
+          echo "NO APK PRODUCED â€” build failed"
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: ToyotaScan-debug
-        path: "**/*.apk"
+        path: output.apk
         if-no-files-found: error
 
-    - name: Upload build log on failure
-      if: failure()
+    - name: Upload build log
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: build-log
