@@ -3,7 +3,7 @@ name: Build ToyotaScan APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:          # lets you trigger a build manually from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,11 +12,9 @@ jobs:
 
     steps:
 
-    # â”€â”€ 1. Check out your code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     - name: Checkout
       uses: actions/checkout@v4
 
-    # â”€â”€ 2. Python + dependencies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
@@ -30,14 +28,23 @@ jobs:
           autoconf libtool pkg-config \
           zlib1g-dev libncurses5-dev libncursesw5-dev \
           cmake libffi-dev libssl-dev \
-          build-essential ccache
+          build-essential ccache aidl
 
     - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
-        pip install buildozer cython==0.29.37
+        pip install buildozer==1.5.0 cython==0.29.37
 
-    # â”€â”€ 3. Cache the heavy stuff (NDK / SDK / p4a) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    - name: Accept Android SDK licenses and install stable build-tools
+      run: |
+        mkdir -p $ANDROID_SDK_ROOT/licenses
+        printf "24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e\n" \
+          > $ANDROID_SDK_ROOT/licenses/android-sdk-license
+        printf "84831b9409646a918e30573bab4c9c91346d8abd\n" \
+          > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+          "build-tools;33.0.2" "platforms;android-33" "platform-tools" || true
+
     - name: Cache Buildozer global directory
       uses: actions/cache@v4
       with:
@@ -46,12 +53,12 @@ jobs:
         restore-keys: |
           buildozer-${{ runner.os }}-
 
-    # â”€â”€ 4. Build! â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     - name: Build debug APK
+      env:
+        ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
       run: |
         buildozer -v android debug 2>&1 | tee build.log
 
-    # â”€â”€ 5. Upload APK as downloadable artifact â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
@@ -59,7 +66,6 @@ jobs:
         path: bin/*.apk
         if-no-files-found: error
 
-    # â”€â”€ 6. Keep the log even if the build fails â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     - name: Upload build log on failure
       if: failure()
       uses: actions/upload-artifact@v4
