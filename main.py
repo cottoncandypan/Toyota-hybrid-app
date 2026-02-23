@@ -27,7 +27,7 @@ from kivy.metrics import dp, sp
 from kivy.properties import ListProperty
 from kivy.utils import get_color_from_hex as hex_c
 
-# ── Bluetooth (Android only, graceful fallback) ──────────────────────────────
+#  Bluetooth (Android only, graceful fallback) 
 try:
     from jnius import autoclass
     from android.permissions import request_permissions, Permission
@@ -41,7 +41,7 @@ except Exception:
 
 SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB"
 
-# ── Pastel palette ────────────────────────────────────────────────────────────
+#  Pastel palette 
 C = {
     # backgrounds
     "bg":       hex_c("F7F0F5"),   # very light pinkish white
@@ -72,7 +72,7 @@ C = {
     "ok":       hex_c("5CBF8A"),   # green for OK
 }
 
-# ── PID definitions ───────────────────────────────────────────────────────────
+#  PID definitions 
 # (name, mode, pid, unit, formula, min, max)
 STANDARD_PIDS = [
     ("Engine RPM",         "01", "0C", "rpm",  "rpm",       0,    8000),
@@ -192,9 +192,9 @@ DTC_DB = {
 }
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# 
 #  VEEPEAK BLUETOOTH MANAGER
-# ════════════════════════════════════════════════════════════════════════════
+# 
 class VeepeakManager:
     def __init__(self):
         self.socket      = None
@@ -343,7 +343,7 @@ class VeepeakManager:
     def send_custom(self, mode, pid, data=""):
         return self._send_raw(mode + pid + data)
 
-    # ── Demo response simulator ───────────────────────────────────────────────
+    #  Demo response simulator 
     def _demo_response(self, cmd):
         t   = time.time()
         c   = cmd.upper().strip()
@@ -363,7 +363,7 @@ class VeepeakManager:
             "ATSP0": "OK\r\n>",
             "03":    "43 01 03 00 01 0A 7F 00 00\r\n>",
             "04":    "44\r\n>",
-            "010C":  f"41 0C {int((800+1200*abs(math.sin(t*0.3)))*4)//256:02X} {int((800+1200*abs(math.sin(t*0.3)))*4)%256:02X}\r\n>",
+            "010C":  "41 0C %02X %02X\r\n>" % (int((800+1200*abs(math.sin(t*0.3)))*4)//256, int((800+1200*abs(math.sin(t*0.3)))*4)%256),
             "010D":  f"41 0D {max(0,int(60+30*math.sin(t*0.1))):02X}\r\n>",
             "0105":  f"41 05 {int(88+2*math.sin(t*0.05)+40):02X}\r\n>",
             "010F":  f"41 0F {int(25+3*math.sin(t*0.07)+40):02X}\r\n>",
@@ -372,7 +372,7 @@ class VeepeakManager:
             "0106":  f"41 06 {int((2.3+1.5*math.sin(t*2)+100)*128/100):02X}\r\n>",
             "0107":  f"41 07 {int((1.6+0.5*math.sin(t*0.1)+100)*128/100):02X}\r\n>",
             "0114":  f"41 14 {int((0.45+0.4*math.sin(t))/0.005):02X} FF\r\n>",
-            "0110":  f"41 10 {int((5.2+3*abs(math.sin(t*0.3)))*100)//256:02X} {int((5.2+3*abs(math.sin(t*0.3)))*100)%256:02X}\r\n>",
+            "0110":  "41 10 %02X %02X\r\n>" % (int((5.2+3*abs(math.sin(t*0.3)))*100)//256, int((5.2+3*abs(math.sin(t*0.3)))*100)%256),
             "010E":  f"41 0E {int((10+5*math.sin(t*0.5))+64)*2:02X}\r\n>",
             "012F":  "41 2F B8\r\n>",
             "2110":  f"61 10 {soc*2:02X}\r\n>",
@@ -383,7 +383,7 @@ class VeepeakManager:
             "22E4":  f"62 E4 {mg2//256:02X} {mg2%256:02X}\r\n>",
             "22E5":  f"62 E5 {int(50+20*math.sin(t*0.4)+128):02X} 00\r\n>",
             "22E6":  f"62 E6 {int(120+40*math.sin(t*0.3)+128):02X} 00\r\n>",
-            "22F405":f"62 F4 05 {int((45+8*math.sin(t*0.05)+40)*10)//256:02X} {int((45+8*math.sin(t*0.05)+40)*10)%256:02X}\r\n>",
+            "22F405":"62 F4 05 %02X %02X\r\n>" % (int((45+8*math.sin(t*0.05)+40)*10)//256, int((45+8*math.sin(t*0.05)+40)*10)%256),
             "22F406":f"62 F4 06 {int(14.1*100):02X} 46\r\n>",
             "2125":  f"61 25 {int(15+12*math.sin(t*0.4)+128):02X}\r\n>",
             "2161":  f"61 61 {int(95+3*math.sin(t*0.03)+40):02X}\r\n>",
@@ -393,9 +393,9 @@ class VeepeakManager:
         return table.get(c, "NO DATA\r\n>")
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# 
 #  REUSABLE UI COMPONENTS  (pastel theme)
-# ════════════════════════════════════════════════════════════════════════════
+# 
 class PastelButton(Button):
     btn_color = ListProperty(list(hex_c("F4A7C0")))
 
@@ -476,9 +476,9 @@ def MutedLabel(**kw):
     return lbl
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# 
 #  PID CARD
-# ════════════════════════════════════════════════════════════════════════════
+# 
 class PIDCard(BoxLayout):
     def __init__(self, name, unit, mn, mx, accent, **kw):
         kw.setdefault("orientation", "vertical")
@@ -501,4 +501,22 @@ class PIDCard(BoxLayout):
             color=accent, halign="left", valign="center",
             size_hint_y=None, height=dp(34)
         )
-        self._val_lbl.bind(size=lambda *_: setattr(s
+        self._val_lbl.bind(size=lambda *_: setattr(self._val_lbl, "text_size", self._val_lbl.size))
+        self._unit_lbl = MutedLabel(
+            text=unit, font_size=sp(9),
+            size_hint_y=None, height=dp(12)
+        )
+        self._bar = Widget(size_hint_y=None, height=dp(5))
+        self._bar.bind(pos=self._draw_bar, size=self._draw_bar)
+
+        self.add_widget(self._name_lbl)
+        self.add_widget(self._val_lbl)
+        self.add_widget(self._unit_lbl)
+        self.add_widget(self._bar)
+        self.bind(pos=self._draw_bg, size=self._draw_bg)
+
+    def _draw_bg(self, *_):
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(*C["border"])
+           
